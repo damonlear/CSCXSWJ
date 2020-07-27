@@ -1,16 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Diagnostics;
-using System.Drawing;
-using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Net.Sockets;
 using System.Threading;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.IO;
 
 namespace WindowsFormsApp3
 {
@@ -18,6 +14,12 @@ namespace WindowsFormsApp3
     {
         private IPAddress serverIP = IPAddress.Parse("127.0.0.1");
         private int serverPort = 8375;
+
+        private Socket clientSocket;
+        private Thread threadReceive;
+        private static string FILE_NAME = "文件名称：";
+        private static string FILE_LENGTH = "文件大小：";
+        private static int FILLTER_LENGTH = 15;
 
         public Form1()
         {
@@ -52,6 +54,7 @@ namespace WindowsFormsApp3
             }
         }
 
+        //检查adb及socket当前状态
         private void checkADBDeviceList()
         {
             while (true)
@@ -61,7 +64,8 @@ namespace WindowsFormsApp3
                 Console.WriteLine(online.Contains("device not found"));
                 if (online.Length <= 0 || online.Contains("device not found"))
                 {
-                    this.Invoke(new EventHandler(delegate {
+                    this.Invoke(new EventHandler(delegate
+                    {
                         text_status.Text = "设备未连接USB";
                     }));
                     Thread.Sleep(1000);
@@ -69,37 +73,39 @@ namespace WindowsFormsApp3
                 }
                 else
                 {
-                    this.Invoke(new EventHandler(delegate {
+                    this.Invoke(new EventHandler(delegate
+                    {
                         text_status.Text = online;
                     }));
                 }
                 string isForward = cmdShell("adb forward --list");
                 if (isForward.Length <= 0 || isForward.Contains("device not found"))
                 {
-                    this.Invoke(new EventHandler(delegate {
+                    this.Invoke(new EventHandler(delegate
+                    {
                         text_status.Text = "USB已连接，转发通道未连接";
                     }));
                     Thread.Sleep(1000);
                     continue;
                 }
-                if(tcpClient == null || !tcpClient.Connected)
+                if (clientSocket == null || !clientSocket.Connected)
                 {
-                    this.Invoke(new EventHandler(delegate {
+                    this.Invoke(new EventHandler(delegate
+                    {
                         text_status.Text = "USB已连接，socket未连接";
                     }));
                     Thread.Sleep(5000);
                 }
                 else
                 {
-                    this.Invoke(new EventHandler(delegate {
+                    this.Invoke(new EventHandler(delegate
+                    {
                         text_status.Text = "USB已连接，socket已连接";
                     }));
-                    Thread.Sleep(10000);
+                    Thread.Sleep(1000);
                 }
-
             }
         }
-
         //-1false 0 null 1download 2unload 3select
         private void setButtonEnable(int status)
         {
@@ -208,11 +214,46 @@ namespace WindowsFormsApp3
 
         private void button_download_Click(object sender, EventArgs e)
         {
+            if (String.IsNullOrEmpty(text_url.Text))
+            {
+                MessageBox.Show("选择需要下载的文件");
+                return;
+            }
 
+            try
+            {
+                string fileName = System.IO.Path.GetFileName(text_url.Text);
+                byte[] buffer = Encoding.UTF8.GetBytes($"{FILE_NAME}:{fileName}");
+                clientSocket.Send(buffer);
+                Thread.Sleep(200);
+
+                using (FileStream fileStream = new FileStream(text_url.Text, FileMode.Open))
+                {
+                    buffer = Encoding.UTF8.GetBytes($"{FILE_LENGTH}:{fileStream.Length}");
+                    clientSocket.Send(buffer);
+                    Thread.Sleep(200);
+
+                    buffer = new byte[1024 * 1024 * 10];
+                    int count = 0;
+                    while (true)
+                    {
+                        count = fileStream.Read(buffer, 0, buffer.Length);
+                        if(count == 0)
+                        {
+                            break;
+                        }
+                        clientSocket.Send(buffer, 0, count, SocketFlags.None);
+                    }
+                }
+            }
+            catch
+            {
+                MessageBox.Show("发送失败");
+            }
         }
         private void button_upload_Click(object sender, EventArgs e)
         {
-
+            //tcpClient.GetStream().Write(new byte[] { 0x01, 0x02 }, 0, 2);
         }
         //IP输入
         private void edittext_ip_TextChanged(object sender, EventArgs e)
@@ -243,7 +284,7 @@ namespace WindowsFormsApp3
                 text_port_regex.Text = "(非法合格端口号)";
             }
         }
-
+        //adb forward tcp 命令创建通道
         private void adbForward()
         {
             this.Invoke(new EventHandler(delegate
@@ -256,59 +297,94 @@ namespace WindowsFormsApp3
             string s = cmdShell("adb forward --list");
             if (s.Contains("device not found") || s.Trim().Length <= 0)
             {
-                text_status.Invoke(new EventHandler(delegate
+                this.Invoke(new EventHandler(delegate
                 {
                     text_status.Text = "ADB-TCP通道建立失败或设备未连接";
                 }));
             }
+
+            // TODO connet device
+            socketConnect();
             this.Invoke(new EventHandler(delegate
             {
                 setButtonEnable(0);
             }));
-            // TODO connet device
         }
+        private void socketConnect()
+        {
+            socketDisconnect();
+            clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            try
+            {
+                //连接服务端
+                clientSocket.Connect(serverIP, serverPort);
+                //开启线程不停的接收服务端发送的数据
+                threadReceive = new Thread(new ThreadStart(Receive));
+                threadReceive.IsBackground = true;
+                threadReceive.Start();
+
+            }
+            catch
+            {
+                MessageBox.Show("连接服务端失败，请确认ip和端口是否填写正确", "连接服务端失败");
+            }
+        }
+
+        private void socketDisconnect()
+        {
+            if (clientSocket != null)
+                clientSocket.Close();
+
+            if (threadReceive != null)
+                threadReceive.Abort();
+
+        }
+
         private void button_connect_device_Click(object sender, EventArgs e)
         {
             Thread thrListener = new Thread(new ThreadStart(adbForward));
             thrListener.Start();
-
         }
+
 
         private void button_disconnect_device_Click(object sender, EventArgs e)
         {
-            //   cmdShell($"adb forward --remove tcp:{serverPort}");
-            Thread tcpServerListener = new Thread(new ThreadStart(TcpClient));
-            tcpServerListener.Start();
+            socketDisconnect();
         }
 
-        //安卓设备作为服务端
-        //pc作为客户端
-        private TcpClient tcpClient;
-        private void TcpClient()
+        //接收服务端消息的线程方法
+        private void Receive()
         {
-            tcpClient = new TcpClient();
-            tcpClient.Connect(serverIP, serverPort);
-
-            NetworkStream ntwStream = tcpClient.GetStream();
-            if (ntwStream.CanWrite)
+            try
             {
-                //    Byte[] bytSend = Encoding.UTF8.GetBytes(txtSendMssg.Text);
-                Byte[] bytSend = new byte[] { 0xE9 , 0x01 , 0x02 , 0x03 , 0x04 };
-                ntwStream.Write(bytSend, 0, bytSend.Length);
+                while (true)
+                {
+                    byte[] buff = new byte[1024 * 1024 * 10];
+                    int r = clientSocket.Receive(buff);
+                    if (r > 0)
+                    {
+                        String str = Encoding.UTF8.GetString(buff, 0, r);
+
+                        this.Invoke(new Action(() => { this.edittext_result.Text = str; }));
+                    }
+                }
             }
-            else
+            catch
             {
-                MessageBox.Show("无法写入数据流");
-
-                ntwStream.Close();
-                tcpClient.Close();
-
-                return;
+                MessageBox.Show("获取服务端参数失败", "连接断开，获取服务端参数失败");
             }
+        }
 
-            ntwStream.Close();
-            tcpClient.Close();
+        private void parserReceiver(byte[] buffer)
+        {
+
         }
     }
+
+    //流程
+    //没有信息都是文件传输
+    //先传输文件名
+    //再传输文件大小
+    //发货或接收文件
 }
 
