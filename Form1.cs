@@ -19,7 +19,8 @@ namespace WindowsFormsApp3
         private Thread threadReceive;
         private static string FILE_NAME = "文件名称：";
         private static string FILE_LENGTH = "文件大小：";
-        private static int FILLTER_LENGTH = 15;
+        private static int TARGET_LENGTH = 15;
+        private static string CurrentDirectory = System.IO.Directory.GetCurrentDirectory();
 
         public Form1()
         {
@@ -211,7 +212,7 @@ namespace WindowsFormsApp3
             string time = DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss");
             text_time.Text = "当前时间：" + time;
         }
-
+        //下载
         private void button_download_Click(object sender, EventArgs e)
         {
             if (String.IsNullOrEmpty(text_url.Text))
@@ -222,14 +223,21 @@ namespace WindowsFormsApp3
 
             try
             {
+                long length = new System.IO.FileInfo(text_url.Text).Length ;
+                int sendCount = 0;
+                progressBar.Minimum = 0;
+                progressBar.Maximum = (int) length;
+                progressBar.Value = sendCount;
+
+
                 string fileName = System.IO.Path.GetFileName(text_url.Text);
-                byte[] buffer = Encoding.UTF8.GetBytes($"{FILE_NAME}:{fileName}");
+                byte[] buffer = Encoding.UTF8.GetBytes($"{FILE_NAME}{fileName}");
                 clientSocket.Send(buffer);
                 Thread.Sleep(200);
 
                 using (FileStream fileStream = new FileStream(text_url.Text, FileMode.Open))
                 {
-                    buffer = Encoding.UTF8.GetBytes($"{FILE_LENGTH}:{fileStream.Length}");
+                    buffer = Encoding.UTF8.GetBytes($"{FILE_LENGTH}{fileStream.Length}");
                     clientSocket.Send(buffer);
                     Thread.Sleep(200);
 
@@ -243,12 +251,21 @@ namespace WindowsFormsApp3
                             break;
                         }
                         clientSocket.Send(buffer, 0, count, SocketFlags.None);
+
+                        //进度条
+                        this.Invoke(new EventHandler(delegate
+                        {
+                            edittext_result.Text = $"count:{count} length:{length} sendcount:{sendCount}";
+                            sendCount += count;
+                            progressBar.Value = sendCount;
+                        }));
                     }
                 }
             }
-            catch
+            catch(Exception  e1)
             {
-                MessageBox.Show("发送失败");
+                MessageBox.Show("发送失败" + e1.Message);
+                progressBar.Value = 0;
             }
         }
         private void button_upload_Click(object sender, EventArgs e)
@@ -352,6 +369,67 @@ namespace WindowsFormsApp3
             socketDisconnect();
         }
 
+        //下载文件 运行在子线程中
+        private void downloadFile()
+        {
+            if (String.IsNullOrEmpty(text_url.Text))
+            {
+                MessageBox.Show("选择需要下载的文件");
+                return;
+            }
+
+            try
+            {
+                long length = new System.IO.FileInfo(text_url.Text).Length;
+                int sendCount = 0;
+                //初始化进度条
+                this.Invoke(new EventHandler(delegate {
+                    progressBar.Minimum = 0;
+                    progressBar.Maximum = (int)length;
+                    progressBar.Value = sendCount;
+                }));
+
+                string fileName = System.IO.Path.GetFileName(text_url.Text);
+                byte[] buffer = Encoding.UTF8.GetBytes($"{FILE_NAME}{fileName}");
+                clientSocket.Send(buffer);
+                Thread.Sleep(200);
+
+                using (FileStream fileStream = new FileStream(text_url.Text, FileMode.Open))
+                {
+                    buffer = Encoding.UTF8.GetBytes($"{FILE_LENGTH}{fileStream.Length}");
+                    clientSocket.Send(buffer);
+                    Thread.Sleep(200);
+
+                    buffer = new byte[1024 * 1024 * 10];
+                    int count = 0;
+                    while (true)
+                    {
+                        count = fileStream.Read(buffer, 0, buffer.Length);
+                        if (count == 0)
+                        {
+                            break;
+                        }
+                        clientSocket.Send(buffer, 0, count, SocketFlags.None);
+
+                        //进度条
+                        this.Invoke(new EventHandler(delegate
+                        {
+                            edittext_result.Text = $"count:{count} length:{length} sendcount:{sendCount}";
+                            sendCount += count;
+                            progressBar.Value = sendCount;
+                        }));
+                    }
+                }
+            }
+            catch (Exception e1)
+            {
+                MessageBox.Show("发送失败" + e1.Message);
+                this.Invoke(new EventHandler(delegate {
+                    progressBar.Value = 0;
+                }));
+            }
+        }
+
         //接收服务端消息的线程方法
         private void Receive()
         {
@@ -363,6 +441,7 @@ namespace WindowsFormsApp3
                     int r = clientSocket.Receive(buff);
                     if (r > 0)
                     {
+                        parserReceiver(buff , 0 , r);
                         String str = Encoding.UTF8.GetString(buff, 0, r);
 
                         this.Invoke(new Action(() => { this.edittext_result.Text = str; }));
@@ -375,9 +454,45 @@ namespace WindowsFormsApp3
             }
         }
 
-        private void parserReceiver(byte[] buffer)
-        {
+        private int receiveIndex = 0;
+        private long receiveLength = 0;
+        private string receivePath = null;
 
+        private void parserReceiver(byte[] buffer , int index , int offset)
+        {
+            String target = Encoding.UTF8.GetString(buffer, 0, TARGET_LENGTH);
+            if(target.Equals(FILE_NAME))
+            {
+                string name = Encoding.UTF8.GetString(buffer, 0, offset).Split('：')[1];
+                Console.Write(name);
+                receivePath = CurrentDirectory + "\\" + name;
+                receiveIndex = 0;
+                receiveLength = 0;
+            }
+            else if (target.Equals(FILE_LENGTH))
+            {
+                string len = Encoding.UTF8.GetString(buffer, 0, offset).Split('：')[1];
+                Console.Write(len);
+                receiveLength = long.Parse(len);
+            }
+            else
+            {
+                bool exists = File.Exists(receivePath);
+                if(exists || receiveIndex == 0)
+                {
+                    File.Delete(receivePath);
+                }
+                // 写文件
+                try
+                {
+                    FileStream fileStream = new FileStream(receivePath, FileMode.Open, FileAccess.Write);
+                    fileStream.Position = fileStream.Length;
+                    fileStream.Write(buffer, 0, offset);
+                }catch(Exception e)
+                {
+                    Console.Write(e);
+                }
+            }
         }
     }
 
