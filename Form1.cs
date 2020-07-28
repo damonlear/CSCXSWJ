@@ -215,62 +215,11 @@ namespace WindowsFormsApp3
         //下载
         private void button_download_Click(object sender, EventArgs e)
         {
-            if (String.IsNullOrEmpty(text_url.Text))
-            {
-                MessageBox.Show("选择需要下载的文件");
-                return;
-            }
-
-            try
-            {
-                long length = new System.IO.FileInfo(text_url.Text).Length ;
-                int sendCount = 0;
-                progressBar.Minimum = 0;
-                progressBar.Maximum = (int) length;
-                progressBar.Value = sendCount;
-
-
-                string fileName = System.IO.Path.GetFileName(text_url.Text);
-                byte[] buffer = Encoding.UTF8.GetBytes($"{FILE_NAME}{fileName}");
-                clientSocket.Send(buffer);
-                Thread.Sleep(200);
-
-                using (FileStream fileStream = new FileStream(text_url.Text, FileMode.Open))
-                {
-                    buffer = Encoding.UTF8.GetBytes($"{FILE_LENGTH}{fileStream.Length}");
-                    clientSocket.Send(buffer);
-                    Thread.Sleep(200);
-
-                    buffer = new byte[1024 * 1024 * 10];
-                    int count = 0;
-                    while (true)
-                    {
-                        count = fileStream.Read(buffer, 0, buffer.Length);
-                        if(count == 0)
-                        {
-                            break;
-                        }
-                        clientSocket.Send(buffer, 0, count, SocketFlags.None);
-
-                        //进度条
-                        this.Invoke(new EventHandler(delegate
-                        {
-                            edittext_result.Text = $"count:{count} length:{length} sendcount:{sendCount}";
-                            sendCount += count;
-                            progressBar.Value = sendCount;
-                        }));
-                    }
-                }
-            }
-            catch(Exception  e1)
-            {
-                MessageBox.Show("发送失败" + e1.Message);
-                progressBar.Value = 0;
-            }
+            new Thread(new ThreadStart(downloadFile)).Start();
         }
         private void button_upload_Click(object sender, EventArgs e)
         {
-            //tcpClient.GetStream().Write(new byte[] { 0x01, 0x02 }, 0, 2);
+            MessageBox.Show( $"上传文件默认保存在：{CurrentDirectory}" , "默认开启接收文件状态");
         }
         //IP输入
         private void edittext_ip_TextChanged(object sender, EventArgs e)
@@ -384,6 +333,7 @@ namespace WindowsFormsApp3
                 int sendCount = 0;
                 //初始化进度条
                 this.Invoke(new EventHandler(delegate {
+                    setButtonEnable(-1);
                     progressBar.Minimum = 0;
                     progressBar.Maximum = (int)length;
                     progressBar.Value = sendCount;
@@ -423,10 +373,18 @@ namespace WindowsFormsApp3
             }
             catch (Exception e1)
             {
-                MessageBox.Show("发送失败" + e1.Message);
                 this.Invoke(new EventHandler(delegate {
+                    MessageBox.Show("发送失败" + e1.Message);
                     progressBar.Value = 0;
+                    setButtonEnable(0);
                 }));
+            }
+            finally
+            {
+                this.Invoke(new EventHandler(delegate {
+                    setButtonEnable(0);
+                }));
+                
             }
         }
 
@@ -457,6 +415,7 @@ namespace WindowsFormsApp3
         private int receiveIndex = 0;
         private long receiveLength = 0;
         private string receivePath = null;
+        private FileStream fileStream = null;
 
         private void parserReceiver(byte[] buffer , int index , int offset)
         {
@@ -468,6 +427,29 @@ namespace WindowsFormsApp3
                 receivePath = CurrentDirectory + "\\" + name;
                 receiveIndex = 0;
                 receiveLength = 0;
+
+                bool exists = File.Exists(receivePath);
+                if (exists || receiveIndex == 0)
+                {
+                    File.Delete(receivePath);
+                }
+                try
+                {
+                    if (fileStream != null)
+                    {
+                        try
+                        {
+                            fileStream.Close();
+                            fileStream = null;
+                        }
+                        catch { }
+                    }
+                    fileStream = new FileStream(receivePath, FileMode.Create, FileAccess.Write);
+                }
+                catch (Exception e)
+                {
+                    Console.Write(e);
+                }
             }
             else if (target.Equals(FILE_LENGTH))
             {
@@ -477,20 +459,26 @@ namespace WindowsFormsApp3
             }
             else
             {
-                bool exists = File.Exists(receivePath);
-                if(exists || receiveIndex == 0)
-                {
-                    File.Delete(receivePath);
-                }
                 // 写文件
                 try
                 {
-                    FileStream fileStream = new FileStream(receivePath, FileMode.Open, FileAccess.Write);
                     fileStream.Position = fileStream.Length;
-                    fileStream.Write(buffer, 0, offset);
-                }catch(Exception e)
+                    fileStream.Write(buffer, index , offset);
+                    receiveIndex += (offset - index);
+                }
+                catch(Exception e)
                 {
                     Console.Write(e);
+                }
+
+                if(fileStream.Position >= receiveLength)
+                {
+                    fileStream.Close();
+                    fileStream = null;
+                }
+                else
+                {
+                    Console.Write($"{fileStream.Position} - {fileStream.Length} - {receiveLength} - {receiveIndex}");
                 }
             }
         }
