@@ -29,14 +29,14 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.button_select = new System.Windows.Forms.Button();
             this.text_url_title = new System.Windows.Forms.Label();
             this.timer_total = new System.Windows.Forms.Timer(this.components);
             this.progressBar = new System.Windows.Forms.ProgressBar();
             this.button_download = new System.Windows.Forms.Button();
             this.button_upload = new System.Windows.Forms.Button();
-            this.text_status_title = new System.Windows.Forms.Label();
-            this.text_status = new System.Windows.Forms.Label();
+            this.text_model_title = new System.Windows.Forms.Label();
             this.text_url = new System.Windows.Forms.Label();
             this.text_size_title = new System.Windows.Forms.Label();
             this.text_size = new System.Windows.Forms.Label();
@@ -51,11 +51,14 @@
             this.text_port_regex = new System.Windows.Forms.Label();
             this.button_connect_device = new System.Windows.Forms.Button();
             this.button_disconnect_device = new System.Windows.Forms.Button();
+            this.text_model = new System.Windows.Forms.Label();
+            this.text_status_title = new System.Windows.Forms.Label();
+            this.text_status = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // button_select
             // 
-            this.button_select.Location = new System.Drawing.Point(12, 94);
+            this.button_select.Location = new System.Drawing.Point(14, 120);
             this.button_select.Name = "button_select";
             this.button_select.Size = new System.Drawing.Size(75, 23);
             this.button_select.TabIndex = 0;
@@ -66,7 +69,7 @@
             // text_url_title
             // 
             this.text_url_title.AutoSize = true;
-            this.text_url_title.Location = new System.Drawing.Point(93, 99);
+            this.text_url_title.Location = new System.Drawing.Point(95, 125);
             this.text_url_title.Name = "text_url_title";
             this.text_url_title.Size = new System.Drawing.Size(41, 12);
             this.text_url_title.TabIndex = 1;
@@ -89,7 +92,7 @@
             this.button_download.Name = "button_download";
             this.button_download.Size = new System.Drawing.Size(75, 23);
             this.button_download.TabIndex = 3;
-            this.button_download.Text = "文件下载";
+            this.button_download.Text = "文件下发";
             this.button_download.UseVisualStyleBackColor = true;
             this.button_download.Click += new System.EventHandler(this.button_download_Click);
             // 
@@ -99,32 +102,23 @@
             this.button_upload.Name = "button_upload";
             this.button_upload.Size = new System.Drawing.Size(75, 23);
             this.button_upload.TabIndex = 4;
-            this.button_upload.Text = "文件上传";
+            this.button_upload.Text = "文件接收";
             this.button_upload.UseVisualStyleBackColor = true;
             this.button_upload.Click += new System.EventHandler(this.button_upload_Click);
             // 
-            // text_status_title
+            // text_model_title
             // 
-            this.text_status_title.AutoSize = true;
-            this.text_status_title.Location = new System.Drawing.Point(10, 9);
-            this.text_status_title.Name = "text_status_title";
-            this.text_status_title.Size = new System.Drawing.Size(89, 12);
-            this.text_status_title.TabIndex = 5;
-            this.text_status_title.Text = "设备连接状态：";
-            // 
-            // text_status
-            // 
-            this.text_status.AutoSize = true;
-            this.text_status.Location = new System.Drawing.Point(106, 9);
-            this.text_status.Name = "text_status";
-            this.text_status.Size = new System.Drawing.Size(65, 12);
-            this.text_status.TabIndex = 6;
-            this.text_status.Text = "设备未连接";
+            this.text_model_title.AutoSize = true;
+            this.text_model_title.Location = new System.Drawing.Point(10, 9);
+            this.text_model_title.Name = "text_model_title";
+            this.text_model_title.Size = new System.Drawing.Size(89, 12);
+            this.text_model_title.TabIndex = 5;
+            this.text_model_title.Text = "设备连接状态：";
             // 
             // text_url
             // 
             this.text_url.AutoSize = true;
-            this.text_url.Location = new System.Drawing.Point(140, 99);
+            this.text_url.Location = new System.Drawing.Point(142, 125);
             this.text_url.Name = "text_url";
             this.text_url.Size = new System.Drawing.Size(0, 12);
             this.text_url.TabIndex = 7;
@@ -132,7 +126,7 @@
             // text_size_title
             // 
             this.text_size_title.AutoSize = true;
-            this.text_size_title.Location = new System.Drawing.Point(92, 128);
+            this.text_size_title.Location = new System.Drawing.Point(94, 154);
             this.text_size_title.Name = "text_size_title";
             this.text_size_title.Size = new System.Drawing.Size(65, 12);
             this.text_size_title.TabIndex = 8;
@@ -141,7 +135,7 @@
             // text_size
             // 
             this.text_size.AutoSize = true;
-            this.text_size.Location = new System.Drawing.Point(163, 128);
+            this.text_size.Location = new System.Drawing.Point(165, 154);
             this.text_size.Name = "text_size";
             this.text_size.Size = new System.Drawing.Size(0, 12);
             this.text_size.TabIndex = 9;
@@ -157,7 +151,7 @@
             // 
             // edittext_port
             // 
-            this.edittext_port.Location = new System.Drawing.Point(81, 51);
+            this.edittext_port.Location = new System.Drawing.Point(83, 77);
             this.edittext_port.Name = "edittext_port";
             this.edittext_port.Size = new System.Drawing.Size(75, 21);
             this.edittext_port.TabIndex = 11;
@@ -167,7 +161,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(10, 54);
+            this.label1.Location = new System.Drawing.Point(12, 80);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(65, 12);
             this.label1.TabIndex = 12;
@@ -176,7 +170,7 @@
             // text_ip_title
             // 
             this.text_ip_title.AutoSize = true;
-            this.text_ip_title.Location = new System.Drawing.Point(10, 32);
+            this.text_ip_title.Location = new System.Drawing.Point(12, 58);
             this.text_ip_title.Name = "text_ip_title";
             this.text_ip_title.Size = new System.Drawing.Size(53, 12);
             this.text_ip_title.TabIndex = 14;
@@ -184,7 +178,7 @@
             // 
             // edittext_ip
             // 
-            this.edittext_ip.Location = new System.Drawing.Point(81, 29);
+            this.edittext_ip.Location = new System.Drawing.Point(83, 55);
             this.edittext_ip.Name = "edittext_ip";
             this.edittext_ip.Size = new System.Drawing.Size(75, 21);
             this.edittext_ip.TabIndex = 15;
@@ -193,18 +187,18 @@
             // 
             // edittext_result
             // 
-            this.edittext_result.Location = new System.Drawing.Point(318, 211);
+            this.edittext_result.Location = new System.Drawing.Point(12, 211);
             this.edittext_result.Multiline = true;
             this.edittext_result.Name = "edittext_result";
             this.edittext_result.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.edittext_result.Size = new System.Drawing.Size(254, 59);
+            this.edittext_result.Size = new System.Drawing.Size(560, 59);
             this.edittext_result.TabIndex = 13;
             // 
             // text_ip_regex
             // 
             this.text_ip_regex.AutoSize = true;
             this.text_ip_regex.ForeColor = System.Drawing.Color.Red;
-            this.text_ip_regex.Location = new System.Drawing.Point(163, 32);
+            this.text_ip_regex.Location = new System.Drawing.Point(165, 58);
             this.text_ip_regex.Name = "text_ip_regex";
             this.text_ip_regex.Size = new System.Drawing.Size(0, 12);
             this.text_ip_regex.TabIndex = 16;
@@ -213,7 +207,7 @@
             // 
             this.text_port_regex.AutoSize = true;
             this.text_port_regex.ForeColor = System.Drawing.Color.Red;
-            this.text_port_regex.Location = new System.Drawing.Point(162, 54);
+            this.text_port_regex.Location = new System.Drawing.Point(164, 80);
             this.text_port_regex.Name = "text_port_regex";
             this.text_port_regex.Size = new System.Drawing.Size(0, 12);
             this.text_port_regex.TabIndex = 17;
@@ -238,9 +232,40 @@
             this.button_disconnect_device.UseVisualStyleBackColor = true;
             this.button_disconnect_device.Click += new System.EventHandler(this.button_disconnect_device_Click);
             // 
+            // text_model
+            // 
+            this.text_model.AutoSize = true;
+            this.text_model.Location = new System.Drawing.Point(94, 9);
+            this.text_model.Name = "text_model";
+            this.text_model.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+            this.text_model.Size = new System.Drawing.Size(53, 12);
+            this.text_model.TabIndex = 20;
+            this.text_model.Text = "未知型号";
+            // 
+            // text_status_title
+            // 
+            this.text_status_title.AutoSize = true;
+            this.text_status_title.Location = new System.Drawing.Point(10, 32);
+            this.text_status_title.Name = "text_status_title";
+            this.text_status_title.Size = new System.Drawing.Size(89, 12);
+            this.text_status_title.TabIndex = 21;
+            this.text_status_title.Text = "设备连接状态：";
+            // 
+            // text_status
+            // 
+            this.text_status.AutoSize = true;
+            this.text_status.Location = new System.Drawing.Point(92, 32);
+            this.text_status.Name = "text_status";
+            this.text_status.Size = new System.Drawing.Size(65, 12);
+            this.text_status.TabIndex = 22;
+            this.text_status.Text = "设备未连接";
+            // 
             // Form1
             // 
             this.ClientSize = new System.Drawing.Size(584, 361);
+            this.Controls.Add(this.text_status);
+            this.Controls.Add(this.text_status_title);
+            this.Controls.Add(this.text_model);
             this.Controls.Add(this.button_disconnect_device);
             this.Controls.Add(this.button_connect_device);
             this.Controls.Add(this.text_port_regex);
@@ -254,16 +279,17 @@
             this.Controls.Add(this.text_size);
             this.Controls.Add(this.text_size_title);
             this.Controls.Add(this.text_url);
-            this.Controls.Add(this.text_status);
-            this.Controls.Add(this.text_status_title);
+            this.Controls.Add(this.text_model_title);
             this.Controls.Add(this.button_upload);
             this.Controls.Add(this.button_download);
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.text_url_title);
             this.Controls.Add(this.button_select);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.MaximizeBox = false;
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "测试程序上位机";
+            this.Text = "外部拓展接口测试上位机";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -272,16 +298,13 @@
 
         #endregion
 
-        private System.Windows.Forms.Button btn_select;
-        private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Button button_select;
         private System.Windows.Forms.Label text_url_title;
         private System.Windows.Forms.Timer timer_total;
         private System.Windows.Forms.ProgressBar progressBar;
         private System.Windows.Forms.Button button_download;
         private System.Windows.Forms.Button button_upload;
-        private System.Windows.Forms.Label text_status_title;
-        private System.Windows.Forms.Label text_status;
+        private System.Windows.Forms.Label text_model_title;
         private System.Windows.Forms.Label text_url;
         private System.Windows.Forms.Label text_size_title;
         private System.Windows.Forms.Label text_size;
@@ -296,6 +319,9 @@
         private System.Windows.Forms.Label text_port_regex;
         private System.Windows.Forms.Button button_connect_device;
         private System.Windows.Forms.Button button_disconnect_device;
+        private System.Windows.Forms.Label text_model;
+        private System.Windows.Forms.Label text_status_title;
+        private System.Windows.Forms.Label text_status;
     }
 }
 

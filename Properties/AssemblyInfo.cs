@@ -5,13 +5,13 @@ using System.Runtime.InteropServices;
 // 有关程序集的一般信息由以下
 // 控制。更改这些特性值可修改
 // 与程序集关联的信息。
-[assembly: AssemblyTitle("WindowsFormsApp3")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("外部拓展接口通信测试上位机")]
+[assembly: AssemblyDescription("外部拓展接口通信测试上位机")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("WindowsFormsApp3")]
+[assembly: AssemblyCompany("深圳市中创电测技术有限公司")]
+[assembly: AssemblyProduct("外部拓展接口通信测试上位机")]
 [assembly: AssemblyCopyright("Copyright ©  2020")]
-[assembly: AssemblyTrademark("")]
+[assembly: AssemblyTrademark("PEMT")]
 [assembly: AssemblyCulture("")]
 
 // 将 ComVisible 设置为 false 会使此程序集中的类型

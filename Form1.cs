@@ -29,7 +29,9 @@ namespace WindowsFormsApp3
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            InitEvent();
+            if (checkMicrosoftNetFramework())
+                InitEvent();    
+            
         }
 
         private void InitEvent()
@@ -40,7 +42,27 @@ namespace WindowsFormsApp3
             timer_total.Start();
 
             Thread thrListener = new Thread(new ThreadStart(checkADBDeviceList));
+            thrListener.IsBackground = true;
             thrListener.Start();
+        }
+
+        private bool checkMicrosoftNetFramework()
+        {
+            string strCmd = @"dir %windir%\\Microsoft.Net\\Framework\\v4.*";
+            string versionDotNetFrameWork = cmdShell(strCmd);
+            if (!versionDotNetFrameWork.Contains("v4.0.30319"))
+            {
+                DialogResult dialogResult = MessageBox.Show("检测到系统可能未安装.Net FrameWork 4.*,如果已安装更高版本则继续运行，否则请安装该环境！");
+                if (dialogResult == DialogResult.OK || dialogResult == DialogResult.Yes)
+                {
+                    System.Environment.Exit(0);
+                }
+                return false;
+            }
+            else
+            {
+                return true;
+            }
         }
 
         private void checkADBEnvironment()
@@ -58,16 +80,21 @@ namespace WindowsFormsApp3
         //检查adb及socket当前状态
         private void checkADBDeviceList()
         {
-            while (true)
+            
+            while (true && this.IsHandleCreated)
             {
                 string online = cmdShell("adb shell getprop ro.product.model");
                 Console.WriteLine(online);
                 Console.WriteLine(online.Contains("device not found"));
-                if (online.Length <= 0 || online.Contains("device not found"))
+                if (string.IsNullOrEmpty(online) || online.Contains("device not found"))
                 {
                     this.Invoke(new EventHandler(delegate
                     {
                         text_status.Text = "设备未连接USB";
+                        text_status.ForeColor = System.Drawing.Color.Red;
+
+                        text_model.Text = "获取设备型号失败";
+                        text_model.ForeColor = System.Drawing.Color.Red;
                     }));
                     Thread.Sleep(1000);
                     continue;
@@ -76,7 +103,8 @@ namespace WindowsFormsApp3
                 {
                     this.Invoke(new EventHandler(delegate
                     {
-                        text_status.Text = online;
+                        text_model.Text = online;
+                        text_model.ForeColor = System.Drawing.Color.Green;
                     }));
                 }
                 string isForward = cmdShell("adb forward --list");
@@ -85,6 +113,7 @@ namespace WindowsFormsApp3
                     this.Invoke(new EventHandler(delegate
                     {
                         text_status.Text = "USB已连接，转发通道未连接";
+                        text_status.ForeColor = System.Drawing.Color.OrangeRed;
                     }));
                     Thread.Sleep(1000);
                     continue;
@@ -94,6 +123,7 @@ namespace WindowsFormsApp3
                     this.Invoke(new EventHandler(delegate
                     {
                         text_status.Text = "USB已连接，socket未连接";
+                        text_status.ForeColor = System.Drawing.Color.OrangeRed;
                     }));
                     Thread.Sleep(5000);
                 }
@@ -102,6 +132,7 @@ namespace WindowsFormsApp3
                     this.Invoke(new EventHandler(delegate
                     {
                         text_status.Text = "USB已连接，socket已连接";
+                        text_status.ForeColor = System.Drawing.Color.Green;
                     }));
                     Thread.Sleep(1000);
                 }
@@ -110,6 +141,8 @@ namespace WindowsFormsApp3
         //-1false 0 null 1download 2unload 3select
         private void setButtonEnable(int status)
         {
+            this.Invoke(new EventHandler(delegate { 
+
             if (status < 0)
             {
                 button_select.Enabled = false;
@@ -144,6 +177,7 @@ namespace WindowsFormsApp3
                 button_download.Enabled = false;
                 button_upload.Enabled = false;
             }
+            }));
         }
         //CMD 命令
         private String cmdShell(String command)
@@ -219,7 +253,21 @@ namespace WindowsFormsApp3
         }
         private void button_upload_Click(object sender, EventArgs e)
         {
-            MessageBox.Show( $"上传文件默认保存在：{CurrentDirectory}" , "默认开启接收文件状态");
+            if (clientSocket == null)
+            {
+                MessageBox.Show("请先连接设备");
+                return;
+            }
+            if (!clientSocket.Connected)
+            {
+                MessageBox.Show("通道未连接");
+                return;
+            }
+            Form_IMG form_IMG = new Form_IMG();
+            form_IMG.Show();
+
+            // MessageBox.Show( $"文件上传由PDA发起\n上传文件默认保存在：{CurrentDirectory}" , "默认开启接收文件状态");
+            // System.Diagnostics.Process.Start(CurrentDirectory);
         }
         //IP输入
         private void edittext_ip_TextChanged(object sender, EventArgs e)
@@ -266,11 +314,15 @@ namespace WindowsFormsApp3
                 this.Invoke(new EventHandler(delegate
                 {
                     text_status.Text = "ADB-TCP通道建立失败或设备未连接";
+                    MessageBox.Show("ADB-TCP通道建立失败或设备未连接");
                 }));
             }
+            else
+            {
+                // TODO connet device
+                socketConnect();
+            }
 
-            // TODO connet device
-            socketConnect();
             this.Invoke(new EventHandler(delegate
             {
                 setButtonEnable(0);
@@ -326,6 +378,16 @@ namespace WindowsFormsApp3
                 MessageBox.Show("选择需要下载的文件");
                 return;
             }
+            if(clientSocket == null)
+            {
+                MessageBox.Show("请先连接设备");
+                return;
+            }
+            if(!clientSocket.Connected)
+            {
+                MessageBox.Show("通道未连接");
+                return;
+            }
 
             try
             {
@@ -357,6 +419,7 @@ namespace WindowsFormsApp3
                         count = fileStream.Read(buffer, 0, buffer.Length);
                         if (count == 0)
                         {
+                            MessageBox.Show("文件下发结束", "文件下发", MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
                             break;
                         }
                         clientSocket.Send(buffer, 0, count, SocketFlags.None);
@@ -385,6 +448,7 @@ namespace WindowsFormsApp3
                     setButtonEnable(0);
                 }));
                 
+
             }
         }
 
@@ -395,6 +459,8 @@ namespace WindowsFormsApp3
             {
                 while (true)
                 {
+                    if (clientSocket == null) continue;
+
                     byte[] buff = new byte[1024 * 1024 * 10];
                     int r = clientSocket.Receive(buff);
                     if (r > 0)
@@ -406,9 +472,9 @@ namespace WindowsFormsApp3
                     }
                 }
             }
-            catch
+            catch(Exception e)
             {
-                MessageBox.Show("获取服务端参数失败", "连接断开，获取服务端参数失败");
+                MessageBox.Show($"不要重复连接设备，获取服务端参数失败:{e.Message}", "连接断开，获取服务端参数失败");
             }
         }
 
@@ -456,12 +522,23 @@ namespace WindowsFormsApp3
                 string len = Encoding.UTF8.GetString(buffer, 0, offset).Split('：')[1];
                 Console.Write(len);
                 receiveLength = long.Parse(len);
+
+                this.Invoke(new EventHandler(delegate {
+                    setButtonEnable(-1);
+                    progressBar.Minimum = 0;
+                    progressBar.Maximum = (int)receiveLength;
+                    progressBar.Value = 0;
+                }));
             }
             else
             {
                 // 写文件
                 try
                 {
+                    if(fileStream == null)
+                    {
+                        return;
+                    }
                     fileStream.Position = fileStream.Length;
                     fileStream.Write(buffer, index , offset);
                     receiveIndex += (offset - index);
@@ -470,11 +547,21 @@ namespace WindowsFormsApp3
                 {
                     Console.Write(e);
                 }
+                finally
+                {
+                    this.Invoke(new EventHandler(delegate { 
+                        if(fileStream!=null)
+                        progressBar.Value = (int) fileStream.Length;
+                    }));
+                }
 
                 if(fileStream.Position >= receiveLength)
                 {
                     fileStream.Close();
                     fileStream = null;
+
+                    MessageBox.Show("接收完成", "接收完成", MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
+                    setButtonEnable(0);
                 }
                 else
                 {
@@ -483,6 +570,7 @@ namespace WindowsFormsApp3
             }
         }
     }
+
 
     //流程
     //没有信息都是文件传输
